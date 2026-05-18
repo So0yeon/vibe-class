@@ -83,24 +83,43 @@ export function GameCard({ game }: Props) {
             </ul>
           )}
 
-          <a
-            href={href}
-            target={isExternal ? "_blank" : undefined}
-            rel={isExternal ? "noopener noreferrer" : undefined}
-            aria-disabled={!isExternal}
-            className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-300 transition hover:border-cyan-400/60 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-[0_0_20px_-4px_rgba(34,211,238,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500/50 aria-disabled:pointer-events-none aria-disabled:opacity-40"
-          >
-            {isExternal ? (
-              <>
-                게임 열기
-                <span aria-hidden className="transition group-hover:translate-x-0.5">
-                  →
-                </span>
-              </>
-            ) : (
-              "준비 중"
-            )}
-          </a>
+          <div className="mt-auto flex flex-col gap-2">
+            <a
+              href={href}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              aria-disabled={!isExternal}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-300 transition hover:border-cyan-400/60 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-[0_0_20px_-4px_rgba(34,211,238,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500/50 aria-disabled:pointer-events-none aria-disabled:opacity-40"
+            >
+              {isExternal ? (
+                <>
+                  게임 열기
+                  <span
+                    aria-hidden
+                    className="transition group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
+                </>
+              ) : (
+                "준비 중"
+              )}
+            </a>
+
+            {game.worksheets.map((ws) => (
+              <a
+                key={ws.url}
+                href={ws.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-violet-500/35 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-300 transition hover:border-violet-400/50 hover:bg-violet-500/15 hover:text-violet-200 hover:shadow-[0_0_16px_-6px_rgba(167,139,250,0.35)]"
+              >
+                <span aria-hidden>📄</span>
+                <span className="truncate">{ws.name}</span>
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </article>

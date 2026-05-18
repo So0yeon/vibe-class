@@ -10,7 +10,13 @@ export const PROPERTY_NAMES = {
   date: "날짜",
   published: "공개여부",
   priority: "우선순위",
+  worksheet: "활동지",
 } as const;
+
+export type WorksheetFile = {
+  name: string;
+  url: string;
+};
 
 export type GameItem = {
   id: string;
@@ -22,11 +28,13 @@ export type GameItem = {
   date: string | null;
   published: boolean;
   priority: number;
+  worksheets: WorksheetFile[];
 };
 
 type NotionRichText = { plain_text: string };
 
 type NotionFile = {
+  name?: string;
   type: string;
   file?: { url: string };
   external?: { url: string };
@@ -86,13 +94,34 @@ function getNumber(prop: unknown): number {
   return p?.number ?? 0;
 }
 
+function resolveFileUrl(file: NotionFile): string | null {
+  return file.type === "external"
+    ? (file.external?.url ?? null)
+    : (file.file?.url ?? null);
+}
+
 function getFileUrl(prop: unknown): string | null {
   const p = prop as { files?: NotionFile[] } | undefined;
   const file = p?.files?.[0];
   if (!file) return null;
-  return file.type === "external"
-    ? (file.external?.url ?? null)
-    : (file.file?.url ?? null);
+  return resolveFileUrl(file);
+}
+
+/** 파일과 미디어 속성의 모든 파일 (활동지 등) */
+function getFiles(prop: unknown): WorksheetFile[] {
+  const p = prop as { files?: NotionFile[] } | undefined;
+  if (!p?.files?.length) return [];
+
+  return p.files.flatMap((file, index) => {
+    const url = resolveFileUrl(file);
+    if (!url) return [];
+    return [
+      {
+        name: file.name?.trim() || `활동지 ${index + 1}`,
+        url,
+      },
+    ];
+  });
 }
 
 function getCoverUrl(cover: NotionFile | null | undefined): string | null {
@@ -119,6 +148,7 @@ function mapPageToGameItem(page: NotionPage): GameItem {
     date: getDate(p[PROPERTY_NAMES.date]),
     published: getCheckbox(p[PROPERTY_NAMES.published]),
     priority: getNumber(p[PROPERTY_NAMES.priority]),
+    worksheets: getFiles(p[PROPERTY_NAMES.worksheet]),
   };
 }
 
