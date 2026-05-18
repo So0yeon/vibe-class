@@ -1,14 +1,15 @@
 const NOTION_VERSION = "2022-06-28";
 
-/** Notion DB 속성명 (한국어 기본 이름) */
+/** Notion DB 속성명 */
 export const PROPERTY_NAMES = {
   title: "제목",
-  tags: "다중 선택",
-  description: "텍스트",
-  thumbnail: "파일과 미디어",
+  tags: "과목",
+  description: "설명",
+  thumbnail: "썸네일",
   url: "URL",
   date: "날짜",
-  published: "체크박스",
+  published: "공개여부",
+  priority: "우선순위",
 } as const;
 
 export type GameItem = {
@@ -20,6 +21,7 @@ export type GameItem = {
   tags: string[];
   date: string | null;
   published: boolean;
+  priority: number;
 };
 
 type NotionRichText = { plain_text: string };
@@ -56,6 +58,19 @@ function getMultiSelect(prop: unknown): string[] {
   return p?.multi_select?.map((s) => s.name) ?? [];
 }
 
+function getSelect(prop: unknown): string | null {
+  const p = prop as { select?: { name: string } | null } | undefined;
+  return p?.select?.name ?? null;
+}
+
+/** 과목: 다중 선택 또는 단일 선택 모두 지원 */
+function getSubjectTags(prop: unknown): string[] {
+  const multi = getMultiSelect(prop);
+  if (multi.length > 0) return multi;
+  const single = getSelect(prop);
+  return single ? [single] : [];
+}
+
 function getCheckbox(prop: unknown): boolean {
   const p = prop as { checkbox?: boolean } | undefined;
   return p?.checkbox ?? false;
@@ -64,6 +79,11 @@ function getCheckbox(prop: unknown): boolean {
 function getDate(prop: unknown): string | null {
   const p = prop as { date?: { start: string | null } | null } | undefined;
   return p?.date?.start ?? null;
+}
+
+function getNumber(prop: unknown): number {
+  const p = prop as { number?: number | null } | undefined;
+  return p?.number ?? 0;
 }
 
 function getFileUrl(prop: unknown): string | null {
@@ -95,10 +115,49 @@ function mapPageToGameItem(page: NotionPage): GameItem {
     description: getPlainText(p[PROPERTY_NAMES.description]),
     thumbnail,
     url: getUrl(p[PROPERTY_NAMES.url]),
-    tags: getMultiSelect(p[PROPERTY_NAMES.tags]),
+    tags: getSubjectTags(p[PROPERTY_NAMES.tags]),
     date: getDate(p[PROPERTY_NAMES.date]),
     published: getCheckbox(p[PROPERTY_NAMES.published]),
+    priority: getNumber(p[PROPERTY_NAMES.priority]),
   };
+}
+
+/** 우선순위 내림차순 (큰 숫자가 먼저) */
+export function sortByPriority(games: GameItem[]): GameItem[] {
+  return [...games].sort((a, b) => b.priority - a.priority);
+}
+
+/** 과목(다중 선택) 태그에서 필터 목록 추출 */
+const SUBJECT_ORDER = [
+  "국어",
+  "수학",
+  "사회",
+  "과학",
+  "영어",
+  "도덕",
+  "음악",
+  "미술",
+  "체육",
+  "실과",
+  "창의",
+  "통합",
+];
+
+export function extractSubjects(games: GameItem[]): string[] {
+  const set = new Set<string>();
+  for (const game of games) {
+    for (const tag of game.tags) {
+      set.add(tag);
+    }
+  }
+  return [...set].sort((a, b) => {
+    const ai = SUBJECT_ORDER.indexOf(a);
+    const bi = SUBJECT_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b, "ko");
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
 }
 
 export async function getGamesFromNotion(): Promise<GameItem[]> {
@@ -125,7 +184,12 @@ export async function getGamesFromNotion(): Promise<GameItem[]> {
           property: PROPERTY_NAMES.published,
           checkbox: { equals: true },
         },
-        sorts: [{ property: PROPERTY_NAMES.date, direction: "descending" }],
+        sorts: [
+          {
+            property: PROPERTY_NAMES.priority,
+            direction: "descending",
+          },
+        ],
       }),
       next: { revalidate: 60 },
     },
@@ -137,7 +201,7 @@ export async function getGamesFromNotion(): Promise<GameItem[]> {
   }
 
   const data = (await res.json()) as { results: NotionPage[] };
-  return data.results.map(mapPageToGameItem);
+  return sortByPriority(data.results.map(mapPageToGameItem));
 }
 
 export function formatGameDate(iso: string | null): string | null {
