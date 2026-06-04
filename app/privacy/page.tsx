@@ -1,6 +1,12 @@
 export default function PrivacyPage() {
   return (
     <main className="max-w-3xl mx-auto p-6">
+      <a
+        href="/"
+        className="inline-block mb-6 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+      >
+        ← Vibe Class 🐙 돌아가기
+      </a>
       <h1 className="text-3xl font-bold mb-8">개인정보처리방침</h1>
 
       <p className="mb-8">
