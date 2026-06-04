@@ -58,6 +58,15 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-[#0f172a] text-slate-200">
         {children}
+
+        <footer className="py-6 text-center text-sm text-slate-400">
+          <a
+            href="/privacy"
+            className="hover:text-slate-200 transition-colors"
+          >
+            개인정보처리방침
+          </a>
+        </footer>
       </body>
     </html>
   );
