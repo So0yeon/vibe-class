@@ -7,6 +7,7 @@ export default function PrivacyPage() {
       >
         ← Vibe Class 🐙 돌아가기
       </a>
+      
       <h1 className="text-3xl font-bold mb-8">개인정보처리방침</h1>
 
       <p className="mb-8">
