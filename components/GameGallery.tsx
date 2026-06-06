@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { GameCard } from "@/components/GameCard";
 import {
   extractGrades,
@@ -26,6 +26,8 @@ export function GameGallery({ games }: Props) {
   const [activeGrade, setActiveGrade] = useState("전체");
   const [activeUnit, setActiveUnit] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const gameListRef = useRef<HTMLDivElement>(null);
 
   const filteredGames = useMemo(
     () =>
@@ -61,12 +63,24 @@ export function GameGallery({ games }: Props) {
     activeGrade !== "전체" ||
     activeUnit !== "전체";
 
+  const activeFilterCount = [
+    search.trim() !== "",
+    activeSubject !== "전체",
+    activeGrade !== "전체",
+    activeUnit !== "전체",
+  ].filter(Boolean).length;
+
   const resetFilters = () => {
     setSearch("");
     setActiveSubject("전체");
     setActiveGrade("전체");
     setActiveUnit("전체");
     setCurrentPage(1);
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    gameListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -95,84 +109,102 @@ export function GameGallery({ games }: Props) {
         </div>
       </div>
 
-      {/* 적용된 필터 상태 + 초기화 */}
-      {hasActiveFilters && (
-        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-slate-500">적용 중:</span>
-            {search.trim() && (
-              <FilterChip label={`검색 "${search.trim()}"`} />
-            )}
-            {activeSubject !== "전체" && (
-              <FilterChip label={activeSubject} />
-            )}
+      {/* 필터 토글 버튼 */}
+      <div className="mb-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setIsFilterOpen((v) => !v)}
+          aria-expanded={isFilterOpen}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/40 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-500/70 hover:bg-slate-800/80 hover:text-slate-100"
+        >
+          <span aria-hidden>🏷️</span>
+          필터 {isFilterOpen ? "닫기" : "열기"}
+          {activeFilterCount > 0 && (
+            <span className="rounded-full border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-300 leading-none">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        {/* 적용된 필터 칩 (접힌 상태에서도 표시) */}
+        {hasActiveFilters && (
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-hidden">
+            {search.trim() && <FilterChip label={`"${search.trim()}"`} />}
+            {activeSubject !== "전체" && <FilterChip label={activeSubject} />}
             {activeGrade !== "전체" && <FilterChip label={activeGrade} />}
             {activeUnit !== "전체" && <FilterChip label={activeUnit} />}
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="shrink-0 rounded-lg border border-slate-600/50 px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:border-slate-500 hover:text-slate-300"
+            >
+              초기화
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="shrink-0 rounded-lg border border-slate-600/50 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-slate-200"
-          >
-            필터 초기화
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 학년 필터 */}
-      <FilterGroup label="학년">
-        <FilterButton
-          label="전체"
-          isActive={activeGrade === "전체"}
-          onClick={() => setActiveGrade("전체")}
-        />
-        {grades.map((grade) => (
-          <FilterButton
-            key={grade}
-            label={grade}
-            isActive={activeGrade === grade}
-            onClick={() => setActiveGrade(grade)}
-          />
-        ))}
-      </FilterGroup>
-
-      {/* 교과 필터 */}
-      {subjects.length > 0 && (
-        <FilterGroup label="교과">
+      {/* 접힘/펼침 필터 영역 */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isFilterOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        {/* 학년 필터 */}
+        <FilterGroup label="학년">
           <FilterButton
             label="전체"
-            isActive={activeSubject === "전체"}
-            onClick={() => setActiveSubject("전체")}
+            isActive={activeGrade === "전체"}
+            onClick={() => setActiveGrade("전체")}
           />
-          {subjects.map((subject) => (
+          {grades.map((grade) => (
             <FilterButton
-              key={subject}
-              label={subject}
-              isActive={activeSubject === subject}
-              onClick={() => setActiveSubject(subject)}
+              key={grade}
+              label={grade}
+              isActive={activeGrade === grade}
+              onClick={() => setActiveGrade(grade)}
             />
           ))}
         </FilterGroup>
-      )}
 
-      {/* 단원 필터 */}
-      {units.length > 0 && (
-        <FilterGroup label="단원">
-          <FilterButton
-            label="전체"
-            isActive={activeUnit === "전체"}
-            onClick={() => setActiveUnit("전체")}
-          />
-          {units.map((unit) => (
+        {/* 교과 필터 */}
+        {subjects.length > 0 && (
+          <FilterGroup label="교과">
             <FilterButton
-              key={unit}
-              label={unit}
-              isActive={activeUnit === unit}
-              onClick={() => setActiveUnit(unit)}
+              label="전체"
+              isActive={activeSubject === "전체"}
+              onClick={() => setActiveSubject("전체")}
             />
-          ))}
-        </FilterGroup>
-      )}
+            {subjects.map((subject) => (
+              <FilterButton
+                key={subject}
+                label={subject}
+                isActive={activeSubject === subject}
+                onClick={() => setActiveSubject(subject)}
+              />
+            ))}
+          </FilterGroup>
+        )}
+
+        {/* 단원 필터 */}
+        {units.length > 0 && (
+          <FilterGroup label="단원">
+            <FilterButton
+              label="전체"
+              isActive={activeUnit === "전체"}
+              onClick={() => setActiveUnit("전체")}
+            />
+            {units.map((unit) => (
+              <FilterButton
+                key={unit}
+                label={unit}
+                isActive={activeUnit === unit}
+                onClick={() => setActiveUnit(unit)}
+              />
+            ))}
+          </FilterGroup>
+        )}
+      </div>
 
       {/* 결과 개수 */}
       <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -193,56 +225,58 @@ export function GameGallery({ games }: Props) {
         </p>
       </div>
 
-      {filteredGames.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-600/50 bg-slate-800/30 px-6 py-14 text-center text-sm text-slate-500">
-          조건에 맞는 수업자료가 없습니다.
-        </p>
-      ) : (
-        <>
-          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
-            {paginatedGames.map((game) => (
-              <li key={game.id} className="h-full">
-                <GameCard game={game} />
-              </li>
-            ))}
-          </ul>
+      <div ref={gameListRef} className="scroll-mt-4">
+        {filteredGames.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-600/50 bg-slate-800/30 px-6 py-14 text-center text-sm text-slate-500">
+            조건에 맞는 수업자료가 없습니다.
+          </p>
+        ) : (
+          <>
+            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
+              {paginatedGames.map((game) => (
+                <li key={game.id} className="h-full">
+                  <GameCard game={game} />
+                </li>
+              ))}
+            </ul>
 
-          {totalPages > 1 && (
-            <nav
-              aria-label="페이지 네비게이션"
-              className="mt-10 flex flex-wrap items-center justify-center gap-2"
-            >
-              <PaginationButton
-                label="이전"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              />
-              {getPageNumbers(currentPage, totalPages).map((page, i) =>
-                page === "..." ? (
-                  <span
-                    key={`ellipsis-${i}`}
-                    className="px-2 text-slate-500"
-                  >
-                    …
-                  </span>
-                ) : (
-                  <PaginationButton
-                    key={page}
-                    label={String(page)}
-                    isActive={currentPage === page}
-                    onClick={() => setCurrentPage(page as number)}
-                  />
-                ),
-              )}
-              <PaginationButton
-                label="다음"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-              />
-            </nav>
-          )}
-        </>
-      )}
+            {totalPages > 1 && (
+              <nav
+                aria-label="페이지 네비게이션"
+                className="mt-10 flex flex-wrap items-center justify-center gap-2"
+              >
+                <PaginationButton
+                  label="이전"
+                  disabled={currentPage <= 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                />
+                {getPageNumbers(currentPage, totalPages).map((page, i) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${i}`}
+                      className="px-2 text-slate-500"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <PaginationButton
+                      key={page}
+                      label={String(page)}
+                      isActive={currentPage === page}
+                      onClick={() => goToPage(page as number)}
+                    />
+                  ),
+                )}
+                <PaginationButton
+                  label="다음"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => goToPage(currentPage + 1)}
+                />
+              </nav>
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 }
