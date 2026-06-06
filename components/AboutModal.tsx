@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { AboutContent } from "@/lib/about";
 
 type Props = {
@@ -30,9 +31,9 @@ export function AboutModal({ open, onClose, about }: Props) {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="about-modal-root fixed inset-0 z-[9999] flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="presentation"
@@ -125,6 +126,7 @@ export function AboutModal({ open, onClose, about }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
