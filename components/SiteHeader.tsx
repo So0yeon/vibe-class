@@ -1,9 +1,11 @@
-import Link from "next/link";
-import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import { HeaderActions } from "@/components/HeaderActions";
+import type { AboutContent } from "@/lib/about";
 
-const INSTAGRAM_URL = "https://www.instagram.com/vibeclas.s/";
+type Props = {
+  about: AboutContent;
+};
 
-export function SiteHeader() {
+export function SiteHeader({ about }: Props) {
   return (
     <header className="relative border-b border-slate-700/50 bg-slate-900/40 backdrop-blur-xl">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
@@ -23,15 +25,7 @@ export function SiteHeader() {
             </p>
           </div>
 
-          <Link
-            href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Vibe Class 인스타그램"
-            className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/60 bg-slate-800/60 text-slate-400 transition hover:border-pink-500/40 hover:bg-pink-500/10 hover:text-pink-400 hover:shadow-[0_0_20px_-6px_rgba(236,72,153,0.5)] sm:h-11 sm:w-11"
-          >
-            <InstagramIcon className="h-5 w-5" />
-          </Link>
+          <HeaderActions about={about} />
         </div>
       </div>
     </header>

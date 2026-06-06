@@ -74,3 +74,51 @@ body {
 .card-neon-glow:hover::before {
   opacity: 1;
 }
+
+/* 제작자 소개 모달 */
+@keyframes about-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes about-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes about-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.about-modal-backdrop {
+  animation: about-backdrop-in 0.35s ease-out forwards;
+}
+
+.about-modal-panel {
+  animation: about-panel-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.about-modal-avatar {
+  animation: about-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.about-modal-paragraph {
+  animation: about-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

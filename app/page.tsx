@@ -1,10 +1,14 @@
 import { GameGallery } from "@/components/GameGallery";
+import { ScrollButtons } from "@/components/ScrollButtons";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getAboutFromNotion } from "@/lib/about";
 import { getGamesFromNotion } from "@/lib/notion";
 
 export default async function Home() {
   let games: Awaited<ReturnType<typeof getGamesFromNotion>> = [];
   let error: string | null = null;
+
+  const about = await getAboutFromNotion();
 
   try {
     games = await getGamesFromNotion();
@@ -13,7 +17,10 @@ export default async function Home() {
   }
 
   return (
-    <div className="relative flex min-h-full flex-col overflow-hidden bg-[#0f172a] text-slate-200">
+    <div
+      id="page-top"
+      className="relative flex min-h-full flex-col overflow-hidden bg-[#0f172a] text-slate-200"
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute -left-32 top-0 h-[480px] w-[480px] rounded-full bg-cyan-500/10 blur-[120px]"
@@ -27,7 +34,7 @@ export default async function Home() {
         className="bg-tech-grid pointer-events-none absolute inset-0 opacity-60"
       />
 
-      <SiteHeader />
+      <SiteHeader about={about} />
 
       <main className="relative mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         {error ? (
@@ -45,6 +52,9 @@ export default async function Home() {
           <GameGallery games={games} />
         )}
       </main>
+
+      <div id="page-bottom" className="h-px shrink-0" aria-hidden />
+      <ScrollButtons />
     </div>
   );
 }

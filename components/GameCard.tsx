@@ -8,6 +8,12 @@ export function GameCard({ game }: Props) {
   const isExternal = Boolean(game.url);
   const formattedDate = formatGameDate(game.date);
 
+  const hasMeta =
+    game.grades.length > 0 ||
+    game.tags.length > 0 ||
+    game.unit.trim() ||
+    game.playTime.trim();
+
   return (
     <article className="card-neon-glow group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-[#1e293b] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
       <div className="relative z-10 flex h-full flex-col">
@@ -64,23 +70,31 @@ export function GameCard({ game }: Props) {
             {game.title}
           </h2>
 
+          {hasMeta && (
+            <div className="flex flex-col gap-0.5 border-l-2 border-cyan-500/25 pl-3 text-xs leading-relaxed">
+              {game.grades.map((grade) => (
+                <span key={grade} className="font-medium text-slate-300">
+                  {grade}
+                </span>
+              ))}
+              {game.tags.map((tag) => (
+                <span key={tag} className="text-slate-400">
+                  {tag}
+                </span>
+              ))}
+              {game.unit.trim() && (
+                <span className="text-slate-400">{game.unit.trim()}</span>
+              )}
+              {game.playTime.trim() && (
+                <span className="text-slate-400">⏱ {game.playTime.trim()}</span>
+              )}
+            </div>
+          )}
+
           {game.description && (
             <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-slate-400 group-hover:text-slate-300">
               {game.description}
             </p>
-          )}
-
-          {game.tags.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5">
-              {game.tags.map((tag) => (
-                <li
-                  key={tag}
-                  className="rounded-full border border-slate-600/60 bg-slate-800/80 px-2.5 py-0.5 text-xs text-slate-300"
-                >
-                  {tag}
-                </li>
-              ))}
-            </ul>
           )}
 
           <div className="mt-auto flex flex-col gap-2">

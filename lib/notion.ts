@@ -11,6 +11,9 @@ export const PROPERTY_NAMES = {
   published: "공개여부",
   priority: "우선순위",
   worksheet: "활동지",
+  grade: "학년",
+  unit: "단원",
+  playTime: "플레이시간",
 } as const;
 
 export type WorksheetFile = {
@@ -29,7 +32,13 @@ export type GameItem = {
   published: boolean;
   priority: number;
   worksheets: WorksheetFile[];
+  grades: string[];
+  unit: string;
+  playTime: string;
 };
+
+/** 학년 미입력 시 마이그레이션 기본값 */
+export const DEFAULT_GRADE_MIGRATION = "전학년";
 
 type NotionRichText = { plain_text: string };
 
@@ -77,6 +86,15 @@ function getSubjectTags(prop: unknown): string[] {
   if (multi.length > 0) return multi;
   const single = getSelect(prop);
   return single ? [single] : [];
+}
+
+/** 학년: Multi-select 우선, Select 호환, 미입력 시 전학년 */
+function getGrades(prop: unknown): string[] {
+  const multi = getMultiSelect(prop);
+  if (multi.length > 0) return multi;
+  const single = getSelect(prop);
+  if (single) return [single];
+  return [DEFAULT_GRADE_MIGRATION];
 }
 
 function getCheckbox(prop: unknown): boolean {
@@ -149,6 +167,9 @@ function mapPageToGameItem(page: NotionPage): GameItem {
     published: getCheckbox(p[PROPERTY_NAMES.published]),
     priority: getNumber(p[PROPERTY_NAMES.priority]),
     worksheets: getFiles(p[PROPERTY_NAMES.worksheet]),
+    grades: getGrades(p[PROPERTY_NAMES.grade]),
+    unit: getPlainText(p[PROPERTY_NAMES.unit]),
+    playTime: getPlainText(p[PROPERTY_NAMES.playTime]),
   };
 }
 
@@ -187,6 +208,78 @@ export function extractSubjects(games: GameItem[]): string[] {
     if (ai === -1) return 1;
     if (bi === -1) return -1;
     return ai - bi;
+  });
+}
+
+const GRADE_ORDER = ["3학년", "4학년", "5학년", "6학년", "전학년"];
+
+export function extractGrades(games: GameItem[]): string[] {
+  const set = new Set<string>();
+  for (const game of games) {
+    for (const grade of game.grades) {
+      set.add(grade);
+    }
+  }
+  return [...set].sort((a, b) => {
+    const ai = GRADE_ORDER.indexOf(a);
+    const bi = GRADE_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b, "ko");
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
+/** 학년 필터 매칭: 5학년 → 5학년 또는 전학년 태그 게임 포함 */
+export function matchesGradeFilter(game: GameItem, filter: string): boolean {
+  if (filter === "전체") return true;
+  if (filter === "전학년") return game.grades.includes("전학년");
+  return (
+    game.grades.includes(filter) || game.grades.includes("전학년")
+  );
+}
+
+/** 단원 필터 목록 (비어 있지 않은 단원만) */
+export function extractUnits(games: GameItem[]): string[] {
+  const set = new Set<string>();
+  for (const game of games) {
+    const unit = game.unit.trim();
+    if (unit) set.add(unit);
+  }
+  return [...set].sort((a, b) =>
+    a.localeCompare(b, "ko", { numeric: true, sensitivity: "base" }),
+  );
+}
+
+export function matchesSearch(game: GameItem, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    game.title.toLowerCase().includes(q) ||
+    game.description.toLowerCase().includes(q)
+  );
+}
+
+export function filterGames(
+  games: GameItem[],
+  {
+    search = "",
+    subject = "전체",
+    grade = "전체",
+    unit = "전체",
+  }: {
+    search?: string;
+    subject?: string;
+    grade?: string;
+    unit?: string;
+  },
+): GameItem[] {
+  return games.filter((game) => {
+    if (!matchesSearch(game, search)) return false;
+    if (subject !== "전체" && !game.tags.includes(subject)) return false;
+    if (!matchesGradeFilter(game, grade)) return false;
+    if (unit !== "전체" && game.unit.trim() !== unit) return false;
+    return true;
   });
 }
 
