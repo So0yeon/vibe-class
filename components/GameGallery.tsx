@@ -78,9 +78,18 @@ export function GameGallery({ games }: Props) {
     setCurrentPage(1);
   };
 
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    gameListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentPage]);
+
   const goToPage = (page: number) => {
     setCurrentPage(page);
-    gameListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
