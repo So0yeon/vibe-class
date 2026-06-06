@@ -45,12 +45,6 @@ export default async function Home() {
           <GameGallery games={games} />
         )}
       </main>
-
-      <footer className="relative border-t border-slate-700/50 py-8 text-center">
-        <p className="font-mono text-[11px] tracking-wider text-slate-600">
-          © {new Date().getFullYear()} Vibe Class
-        </p>
-      </footer>
     </div>
   );
 }

@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 
 const SITE_TITLE = "Vibe Class │ 수업에 바이브를 더하다";
 const SITE_DESCRIPTION = "교실에서 바로 쓰는 웹앱 수업자료 아카이브";
+const COPYRIGHT_NOTICE = "© Vibe Class. All Rights Reserved.";
 const OG_IMAGE =
   "https://github.com/So0yeon/vibe-class/raw/main/og-image.png";
 
@@ -59,13 +60,16 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-[#0f172a] text-slate-200">
         {children}
 
-        <footer className="py-6 text-center text-sm text-slate-400">
+        <footer className="mt-auto py-6 text-center">
           <a
             href="/privacy"
-            className="hover:text-slate-200 transition-colors"
+            className="text-sm text-slate-400 transition-colors hover:text-slate-200"
           >
             개인정보처리방침
           </a>
+          <p className="pointer-events-none mt-3 text-[11px] text-slate-400 opacity-50">
+            {COPYRIGHT_NOTICE}
+          </p>
         </footer>
       </body>
     </html>
