@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_TITLE = "Vibe Class│수업에 바이브를 더하다";
+const SITE_TITLE = "Vibe Class │ 수업에 바이브를 더하다";
 const SITE_DESCRIPTION = "교실에서 바로 쓰는 웹앱 수업자료 아카이브";
 const OG_IMAGE =
   "https://github.com/So0yeon/vibe-class/raw/main/og-image.png";
