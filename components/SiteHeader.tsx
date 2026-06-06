@@ -14,7 +14,7 @@ export function SiteHeader({ about }: Props) {
         alt=""
         fill
         priority
-        className="object-cover"
+        className="object-cover object-right sm:object-center"
         sizes="100vw"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/25" />

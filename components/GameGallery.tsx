@@ -10,7 +10,7 @@ import {
   type GameItem,
 } from "@/lib/notion";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 9;
 
 type Props = {
   games: GameItem[];
