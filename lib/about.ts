@@ -31,18 +31,13 @@ type NotionBlock = {
   bulleted_list_item?: { rich_text: NotionRichText[] };
   numbered_list_item?: { rich_text: NotionRichText[] };
   quote?: { rich_text: NotionRichText[] };
+  image?: { type: string; external?: { url: string }; file?: { url: string } };
 };
 
 type NotionCover = {
   type: string;
   external?: { url: string };
   file?: { url: string };
-};
-
-type NotionFile = {
-  type: string;
-  file?: { url: string };
-  external?: { url: string };
 };
 
 type NotionTitleProperty = {
@@ -69,21 +64,18 @@ function getCoverUrl(cover: NotionCover | null | undefined): string | null {
     : (cover.file?.url ?? null);
 }
 
-function getFileUrl(file: NotionFile | undefined): string | null {
-  if (!file) return null;
-  return file.type === "external"
-    ? (file.external?.url ?? null)
-    : (file.file?.url ?? null);
+function getImageBlockUrl(block: NotionBlock): string | null {
+  const img = block.image;
+  if (!img) return null;
+  return img.type === "external"
+    ? (img.external?.url ?? null)
+    : (img.file?.url ?? null);
 }
 
 function normalizeNotionPageId(value: string): string {
   const compactValue = value.replace(/-/g, "");
   const match = compactValue.match(/[0-9a-fA-F]{32}/);
   return match?.[0] ?? value;
-}
-
-function normalizePropertyName(value: string): string {
-  return value.replace(/\s/g, "").toLowerCase();
 }
 
 function getPageTitle(
@@ -102,29 +94,6 @@ function getPageTitle(
   return "";
 }
 
-function getBannerImage(
-  properties: Record<string, unknown> | undefined,
-): string | null {
-  if (!properties) return null;
-
-  const bannerNames = new Set([
-    "배너이미지",
-    "bannerimage",
-    "herobanner",
-    "heroimage",
-  ]);
-
-  for (const [name, property] of Object.entries(properties)) {
-    if (!bannerNames.has(normalizePropertyName(name))) continue;
-
-    const filesProperty = property as { files?: NotionFile[] };
-    const imageUrl = getFileUrl(filesProperty.files?.[0]);
-    if (imageUrl) return imageUrl;
-  }
-
-  return null;
-}
-
 function blockToParagraph(block: NotionBlock): string | null {
   const type = block.type;
   const data = block[type as keyof NotionBlock] as
@@ -135,11 +104,16 @@ function blockToParagraph(block: NotionBlock): string | null {
   return text || null;
 }
 
-async function fetchBlockParagraphs(
+type BlocksData = {
+  bannerImage: string | null;
+  paragraphs: string[];
+};
+
+async function fetchBlocksData(
   token: string,
   blockId: string,
-): Promise<string[]> {
-  const paragraphs: string[] = [];
+): Promise<BlocksData> {
+  const allBlocks: NotionBlock[] = [];
   let cursor: string | undefined;
 
   do {
@@ -162,21 +136,29 @@ async function fetchBlockParagraphs(
       next_cursor: string | null;
     };
 
-    for (const block of data.results) {
-      const text = blockToParagraph(block);
-      if (text) paragraphs.push(text);
-    }
-
+    allBlocks.push(...data.results);
     cursor = data.has_more ? (data.next_cursor ?? undefined) : undefined;
   } while (cursor);
 
-  return paragraphs;
+  const firstImageIndex = allBlocks.findIndex((b) => b.type === "image");
+  const bannerImage =
+    firstImageIndex >= 0 ? getImageBlockUrl(allBlocks[firstImageIndex]) : null;
+
+  const startIndex = firstImageIndex >= 0 ? firstImageIndex + 1 : 0;
+  const paragraphs: string[] = [];
+  for (const block of allBlocks.slice(startIndex)) {
+    const text = blockToParagraph(block);
+    if (text) paragraphs.push(text);
+  }
+
+  return { bannerImage, paragraphs };
 }
 
 /**
- * 별도 Notion 페이지(NOTION_ABOUT_PAGE_ID)에서 소개 섹션을 불러옵니다.
+ * 별도 Notion 일반 페이지(NOTION_ABOUT_PAGE_ID)에서 소개 섹션을 불러옵니다.
  * - 제목: 페이지 Title
- * - 내용: 페이지 본문 블록(문단·제목·목록)
+ * - Hero Banner: 본문 첫 번째 이미지 블록 (없으면 기본 배너)
+ * - 내용: 첫 번째 이미지 블록 이후의 문단
  * - 프로필: 페이지 Cover 이미지(선택)
  */
 export async function getAboutFromNotion(): Promise<AboutContent> {
@@ -203,17 +185,14 @@ export async function getAboutFromNotion(): Promise<AboutContent> {
     };
 
     const title = getPageTitle(page.properties) || DEFAULT_ABOUT.title;
-
-    const paragraphs = await fetchBlockParagraphs(token, pageId);
+    const { bannerImage, paragraphs } = await fetchBlocksData(token, pageId);
     const profileImage = getCoverUrl(page.cover ?? undefined);
-    const bannerImage =
-      getBannerImage(page.properties) ?? DEFAULT_ABOUT.bannerImage;
 
     return {
       title,
       paragraphs: paragraphs.length > 0 ? paragraphs : DEFAULT_ABOUT.paragraphs,
       profileImage,
-      bannerImage,
+      bannerImage: bannerImage ?? DEFAULT_ABOUT.bannerImage,
     };
   } catch {
     return DEFAULT_ABOUT;

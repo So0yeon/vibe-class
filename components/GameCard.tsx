@@ -3,17 +3,17 @@ import { formatGameDate, type GameItem } from "@/lib/notion";
 
 type Props = { game: GameItem };
 
-const BODY_META_EXCLUDED_TAGS = new Set(["추천", "창체"]);
+const MAX_VISIBLE_TAGS = 3;
 
 export function GameCard({ game }: Props) {
   const href = game.url ?? "#";
   const isExternal = Boolean(game.url);
   const formattedDate = formatGameDate(game.date);
-  const bodyTags = game.tags.filter((tag) => !BODY_META_EXCLUDED_TAGS.has(tag));
+  const visibleTags = game.tags.slice(0, MAX_VISIBLE_TAGS);
+  const hiddenTags = game.tags.slice(MAX_VISIBLE_TAGS);
   const metaPills = [
     ...(game.playTime.trim() ? [`⏱ ${game.playTime.trim()}`] : []),
     ...game.grades,
-    ...bodyTags,
     ...(game.unit.trim() ? [game.unit.trim()] : []),
   ];
   const hasMeta = metaPills.length > 0;
@@ -43,7 +43,7 @@ export function GameCard({ game }: Props) {
 
           {game.tags.length > 0 && (
             <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5">
-              {game.tags.slice(0, 2).map((tag) => (
+              {visibleTags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded-md border border-cyan-500/30 bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-300 backdrop-blur-sm"
@@ -51,9 +51,12 @@ export function GameCard({ game }: Props) {
                   {tag}
                 </span>
               ))}
-              {game.tags.length > 2 && (
-                <span className="rounded-md border border-slate-500/40 bg-slate-900/80 px-2 py-0.5 text-[10px] font-medium text-slate-400 backdrop-blur-sm">
-                  +{game.tags.length - 2}
+              {hiddenTags.length > 0 && (
+                <span
+                  className="cursor-default rounded-md border border-slate-500/40 bg-slate-900/80 px-2 py-0.5 text-[10px] font-medium text-slate-400 backdrop-blur-sm"
+                  title={hiddenTags.join(", ")}
+                >
+                  +{hiddenTags.length}
                 </span>
               )}
             </div>
