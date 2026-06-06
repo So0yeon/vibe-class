@@ -37,6 +37,11 @@ type NotionCover = {
   file?: { url: string };
 };
 
+type NotionTitleProperty = {
+  type?: string;
+  title?: NotionRichText[];
+};
+
 function getNotionHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -54,6 +59,28 @@ function getCoverUrl(cover: NotionCover | null | undefined): string | null {
   return cover.type === "external"
     ? (cover.external?.url ?? null)
     : (cover.file?.url ?? null);
+}
+
+function normalizeNotionPageId(value: string): string {
+  const compactValue = value.replace(/-/g, "");
+  const match = compactValue.match(/[0-9a-fA-F]{32}/);
+  return match?.[0] ?? value;
+}
+
+function getPageTitle(
+  properties: Record<string, unknown> | undefined,
+): string {
+  if (!properties) return "";
+
+  for (const property of Object.values(properties)) {
+    const titleProperty = property as NotionTitleProperty;
+    if (titleProperty.type === "title" || titleProperty.title) {
+      const title = richTextToPlain(titleProperty.title).trim();
+      if (title) return title;
+    }
+  }
+
+  return "";
 }
 
 function blockToParagraph(block: NotionBlock): string | null {
@@ -112,7 +139,9 @@ async function fetchBlockParagraphs(
  */
 export async function getAboutFromNotion(): Promise<AboutContent> {
   const token = process.env.NOTION_TOKEN;
-  const pageId = process.env.NOTION_ABOUT_PAGE_ID;
+  const pageId = process.env.NOTION_ABOUT_PAGE_ID
+    ? normalizeNotionPageId(process.env.NOTION_ABOUT_PAGE_ID)
+    : undefined;
 
   if (!token || !pageId) {
     return DEFAULT_ABOUT;
@@ -127,16 +156,11 @@ export async function getAboutFromNotion(): Promise<AboutContent> {
     if (!pageRes.ok) return DEFAULT_ABOUT;
 
     const page = (await pageRes.json()) as {
-      properties?: {
-        title?: { title?: NotionRichText[] };
-        Name?: { title?: NotionRichText[] };
-      };
+      properties?: Record<string, unknown>;
       cover?: NotionCover | null;
     };
 
-    const titleProp = page.properties?.title ?? page.properties?.Name;
-    const title =
-      richTextToPlain(titleProp?.title).trim() || DEFAULT_ABOUT.title;
+    const title = getPageTitle(page.properties) || DEFAULT_ABOUT.title;
 
     const paragraphs = await fetchBlockParagraphs(token, pageId);
     const profileImage = getCoverUrl(page.cover ?? undefined);
