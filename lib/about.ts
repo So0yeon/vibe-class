@@ -4,6 +4,7 @@ export type AboutContent = {
   title: string;
   paragraphs: string[];
   profileImage: string | null;
+  bannerImage: string;
 };
 
 export const DEFAULT_ABOUT: AboutContent = {
@@ -14,6 +15,7 @@ export const DEFAULT_ABOUT: AboutContent = {
     "이 사이트의 콘텐츠는 실제 수업 경험을 바탕으로 설계되었으며, 교실에서 바로 활용할 수 있도록 제작되었습니다.",
   ],
   profileImage: null,
+  bannerImage: "/og-image.png",
 };
 
 type NotionRichText = { plain_text: string };
@@ -35,6 +37,12 @@ type NotionCover = {
   type: string;
   external?: { url: string };
   file?: { url: string };
+};
+
+type NotionFile = {
+  type: string;
+  file?: { url: string };
+  external?: { url: string };
 };
 
 type NotionTitleProperty = {
@@ -61,10 +69,21 @@ function getCoverUrl(cover: NotionCover | null | undefined): string | null {
     : (cover.file?.url ?? null);
 }
 
+function getFileUrl(file: NotionFile | undefined): string | null {
+  if (!file) return null;
+  return file.type === "external"
+    ? (file.external?.url ?? null)
+    : (file.file?.url ?? null);
+}
+
 function normalizeNotionPageId(value: string): string {
   const compactValue = value.replace(/-/g, "");
   const match = compactValue.match(/[0-9a-fA-F]{32}/);
   return match?.[0] ?? value;
+}
+
+function normalizePropertyName(value: string): string {
+  return value.replace(/\s/g, "").toLowerCase();
 }
 
 function getPageTitle(
@@ -81,6 +100,29 @@ function getPageTitle(
   }
 
   return "";
+}
+
+function getBannerImage(
+  properties: Record<string, unknown> | undefined,
+): string | null {
+  if (!properties) return null;
+
+  const bannerNames = new Set([
+    "배너이미지",
+    "bannerimage",
+    "herobanner",
+    "heroimage",
+  ]);
+
+  for (const [name, property] of Object.entries(properties)) {
+    if (!bannerNames.has(normalizePropertyName(name))) continue;
+
+    const filesProperty = property as { files?: NotionFile[] };
+    const imageUrl = getFileUrl(filesProperty.files?.[0]);
+    if (imageUrl) return imageUrl;
+  }
+
+  return null;
 }
 
 function blockToParagraph(block: NotionBlock): string | null {
@@ -164,11 +206,14 @@ export async function getAboutFromNotion(): Promise<AboutContent> {
 
     const paragraphs = await fetchBlockParagraphs(token, pageId);
     const profileImage = getCoverUrl(page.cover ?? undefined);
+    const bannerImage =
+      getBannerImage(page.properties) ?? DEFAULT_ABOUT.bannerImage;
 
     return {
       title,
       paragraphs: paragraphs.length > 0 ? paragraphs : DEFAULT_ABOUT.paragraphs,
       profileImage,
+      bannerImage,
     };
   } catch {
     return DEFAULT_ABOUT;

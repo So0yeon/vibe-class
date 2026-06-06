@@ -3,16 +3,20 @@ import { formatGameDate, type GameItem } from "@/lib/notion";
 
 type Props = { game: GameItem };
 
+const BODY_META_EXCLUDED_TAGS = new Set(["추천", "창체"]);
+
 export function GameCard({ game }: Props) {
   const href = game.url ?? "#";
   const isExternal = Boolean(game.url);
   const formattedDate = formatGameDate(game.date);
-
-  const hasMeta =
-    game.grades.length > 0 ||
-    game.tags.length > 0 ||
-    game.unit.trim() ||
-    game.playTime.trim();
+  const bodyTags = game.tags.filter((tag) => !BODY_META_EXCLUDED_TAGS.has(tag));
+  const metaPills = [
+    ...(game.playTime.trim() ? [`⏱ ${game.playTime.trim()}`] : []),
+    ...game.grades,
+    ...bodyTags,
+    ...(game.unit.trim() ? [game.unit.trim()] : []),
+  ];
+  const hasMeta = metaPills.length > 0;
 
   return (
     <article className="card-neon-glow group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-[#1e293b] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
@@ -71,23 +75,16 @@ export function GameCard({ game }: Props) {
           </h2>
 
           {hasMeta && (
-            <div className="flex flex-col gap-0.5 border-l-2 border-cyan-500/25 pl-3 text-xs leading-relaxed">
-              {game.grades.map((grade) => (
-                <span key={grade} className="font-medium text-slate-300">
-                  {grade}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {metaPills.map((meta, index) => (
+                <span
+                  key={`${meta}-${index}`}
+                  className="max-w-full truncate rounded-md border border-cyan-500/30 bg-slate-900/70 px-2 py-1 text-[11px] font-medium leading-none text-cyan-200/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:max-w-[12rem]"
+                  title={meta}
+                >
+                  {meta}
                 </span>
               ))}
-              {game.tags.map((tag) => (
-                <span key={tag} className="text-slate-400">
-                  {tag}
-                </span>
-              ))}
-              {game.unit.trim() && (
-                <span className="text-slate-400">{game.unit.trim()}</span>
-              )}
-              {game.playTime.trim() && (
-                <span className="text-slate-400">⏱ {game.playTime.trim()}</span>
-              )}
             </div>
           )}
 
