@@ -13,7 +13,7 @@ export const PROPERTY_NAMES = {
   worksheet: "활동지",
   grade: "학년",
   unit: "단원",
-  playTime: "플레이시간",
+  playTime: "플레이 시간",
 } as const;
 
 export type WorksheetFile = {
@@ -97,6 +97,17 @@ function getGrades(prop: unknown): string[] {
   return [DEFAULT_GRADE_MIGRATION];
 }
 
+/** rich_text → select → number 순서로 fallback */
+function getTextOrSelect(prop: unknown): string {
+  const text = getPlainText(prop);
+  if (text) return text;
+  const sel = getSelect(prop);
+  if (sel) return sel;
+  const num = (prop as { number?: number | null } | undefined)?.number;
+  if (num != null) return String(num);
+  return "";
+}
+
 function getCheckbox(prop: unknown): boolean {
   const p = prop as { checkbox?: boolean } | undefined;
   return p?.checkbox ?? false;
@@ -169,7 +180,7 @@ function mapPageToGameItem(page: NotionPage): GameItem {
     worksheets: getFiles(p[PROPERTY_NAMES.worksheet]),
     grades: getGrades(p[PROPERTY_NAMES.grade]),
     unit: getPlainText(p[PROPERTY_NAMES.unit]),
-    playTime: getPlainText(p[PROPERTY_NAMES.playTime]),
+    playTime: getTextOrSelect(p[PROPERTY_NAMES.playTime]),
   };
 }
 
